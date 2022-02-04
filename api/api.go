@@ -145,6 +145,9 @@ func NewAPIWithVersion(ctx context.Context, globalConfig *conf.GlobalConfigurati
 			r.Use(api.requireAuthentication)
 			r.Get("/", api.UserGet)
 			r.With(sharedLimiter).Put("/", api.UserUpdate)
+			r.Put("/reset_password", api.ResetPassword)
+			r.Put("/change_password", api.ChangePassword)
+			r.Post("/resend_confirm", api.ResendConfirm)
 		})
 
 		r.Route("/admin", func(r *router) {
@@ -199,7 +202,7 @@ func NewAPIWithVersion(ctx context.Context, globalConfig *conf.GlobalConfigurati
 
 	corsHandler := cors.New(cors.Options{
 		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", audHeaderName, useCookieHeader},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "Referer", audHeaderName, useCookieHeader},
 		AllowCredentials: true,
 	})
 

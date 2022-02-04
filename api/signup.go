@@ -88,6 +88,10 @@ func (a *API) Signup(w http.ResponseWriter, r *http.Request) error {
 		return internalServerError("Database error finding user").WithInternalError(err)
 	}
 
+	if user!=nil {
+		return badRequestError("Sorry, this email can't be registered. Let's try another one.")
+	}
+
 	err = a.db.Transaction(func(tx *storage.Connection) error {
 		var terr error
 		if user != nil {
@@ -187,7 +191,7 @@ func (a *API) Signup(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// handles case where Mailer.Autoconfirm is true or Phone.Autoconfirm is true
-	if user.IsConfirmed() || user.IsPhoneConfirmed() {
+	if user.IsConfirmed() || user.IsPhoneConfirmed() || config.NotConfirmedAccess {
 		var token *AccessTokenResponse
 		err = a.db.Transaction(func(tx *storage.Connection) error {
 			var terr error

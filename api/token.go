@@ -2,9 +2,7 @@ package api
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -177,10 +175,12 @@ func (a *API) ResourceOwnerPasswordGrant(ctx context.Context, w http.ResponseWri
 		return oauthError("invalid_grant", InvalidLoginMessage)
 	}
 
-	if params.Email != "" && !user.IsConfirmed() {
-		return oauthError("invalid_grant", "Email not confirmed")
-	} else if params.Phone != "" && !user.IsPhoneConfirmed() {
-		return oauthError("invalid_grant", "Phone not confirmed")
+	if !config.NotConfirmedAccess {
+		if params.Email != "" && !user.IsConfirmed() {
+			return oauthError("invalid_grant", "Email not confirmed")
+		} else if params.Phone != "" && !user.IsPhoneConfirmed() {
+			return oauthError("invalid_grant", "Phone not confirmed")
+		}
 	}
 
 	var token *AccessTokenResponse
