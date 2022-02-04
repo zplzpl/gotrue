@@ -56,11 +56,15 @@ func (a *API) Signup(w http.ResponseWriter, r *http.Request) error {
 		return internalServerError("Database error finding user").WithInternalError(err)
 	}
 
+	if user!=nil {
+		return badRequestError("Sorry, this email can't be registered. Let's try another one.")
+	}
+
 	err = a.db.Transaction(func(tx *storage.Connection) error {
 		var terr error
 		if user != nil {
 			if user.IsConfirmed() {
-				return badRequestError("A user with this email address has already been registered")
+				return badRequestError("Sorry, this email can't be registered. Let's try another one.")
 			}
 
 			if err := user.UpdateUserMetaData(tx, params.Data); err != nil {
@@ -101,7 +105,7 @@ func (a *API) Signup(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	if user.IsConfirmed() {
+	if user.IsConfirmed() || config.NotConfirmedAccess {
 		var token *AccessTokenResponse
 		err = a.db.Transaction(func(tx *storage.Connection) error {
 			var terr error
@@ -131,6 +135,7 @@ func (a *API) Signup(w http.ResponseWriter, r *http.Request) error {
 		token.User = user
 		return sendJSON(w, http.StatusOK, token)
 	}
+
 	return sendJSON(w, http.StatusOK, user)
 }
 

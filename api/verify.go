@@ -123,6 +123,9 @@ func (a *API) Verify(w http.ResponseWriter, r *http.Request) error {
 			q.Set("expires_in", strconv.Itoa(token.ExpiresIn))
 			q.Set("refresh_token", token.RefreshToken)
 			q.Set("type", params.Type)
+			if params.Type == recoveryVerification {
+				q.Set("recovery_token", params.Token)
+			}
 			rurl += "#" + q.Encode()
 		}
 		http.Redirect(w, r, rurl, http.StatusSeeOther)
@@ -203,9 +206,13 @@ func (a *API) recoverVerify(ctx context.Context, conn *storage.Connection, param
 
 	err = conn.Transaction(func(tx *storage.Connection) error {
 		var terr error
-		if terr = user.Recover(tx); terr != nil {
-			return terr
+
+		if params.Type != recoveryVerification {
+			if terr = user.Recover(tx); terr != nil {
+				return terr
+			}
 		}
+
 		if !user.IsConfirmed() {
 			if terr = models.NewAuditLogEntry(tx, instanceID, user, models.UserSignedUpAction, nil); terr != nil {
 				return terr
@@ -218,12 +225,14 @@ func (a *API) recoverVerify(ctx context.Context, conn *storage.Connection, param
 				return terr
 			}
 		}
+
 		return nil
 	})
 
 	if err != nil {
 		return nil, internalServerError("Database error updating user").WithInternalError(err)
 	}
+
 	return user, nil
 }
 
